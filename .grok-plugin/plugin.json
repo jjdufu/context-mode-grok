@@ -19,7 +19,7 @@
     "grok",
     "grok-build"
   ],
-  "hooks": "./hooks/grok/hooks.json",
+  "hooks": "./hooks/hooks.json",
   "skills": "./skills/",
   "mcpServers": {
     "context-mode": {
