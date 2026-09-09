@@ -1,6 +1,6 @@
 {
   "name": "context-mode-grok",
-  "description": "Private marketplace: context-mode adapted for Grok Build CLI (jjdufu fork).",
+  "description": "Marketplace: context-mode adapted for Grok Build CLI (jjdufu fork).",
   "owner": {
     "name": "jjdufu",
     "email": ""
@@ -8,20 +8,20 @@
   "plugins": [
     {
       "name": "context-mode",
-      "description": "MCP plugin that saves context on Grok Build. Sandboxed execution, FTS5 KB, and hook routing for run_terminal_command / read_file / web_fetch. Auto-installs global hooks bridge on MCP start.",
+      "description": "MCP plugin for Grok Build \u2014 context sandbox, FTS5 KB, hook routing. Auto-installs global hooks on MCP start.",
       "category": "productivity",
       "version": "1.0.169-grok.1",
       "source": {
-        "type": "local",
-        "path": "./"
+        "source": "url",
+        "url": "https://github.com/jjdufu/context-mode-grok.git",
+        "sha": "22a2eb205fad22e77ec9bb71c4b3fe9e88daf387"
       },
       "homepage": "https://github.com/jjdufu/context-mode-grok",
       "keywords": [
         "mcp",
         "context-mode",
         "grok",
-        "grok-build",
-        "context-window"
+        "grok-build"
       ]
     }
   ]
