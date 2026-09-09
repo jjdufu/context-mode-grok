@@ -59,3 +59,20 @@ GROK_PLUGIN_ROOT=/tmp/x CLAUDE_PROJECT_DIR=/tmp/y node -e \
 grok plugin validate /path/to/context-mode
 grok mcp doctor context-mode
 ```
+
+## Grok plugin hooks caveat (1.0.24)
+
+Grok lists plugin hooks in `grok inspect` (`has_hooks=true`) but **does not activate** them at runtime on this version: it opens `~/.grok/trusted-plugins`, and when that file is missing, plugin hooks stay inert. `grok plugin install --trust` does not create the file (format still undocumented).
+
+**Workaround (verified):** install a global hooks bridge:
+
+```bash
+node scripts/grok-install-global-hooks.mjs
+# or from an installed plugin copy:
+node ~/.grok/installed-plugins/context-mode-*/scripts/grok-install-global-hooks.mjs
+```
+
+This writes `~/.grok/hooks/context-mode.json` pointing at `hooks/grok/pretooluse.mjs` (deny → ctx_*). Verified: large `read_file` returns `Hook denied` and steers toward `context-mode__ctx_execute_file`.
+
+Keep shipping `hooks/hooks.json` + `.grok-plugin/plugin.json` for when plugin trust lands; the global bridge is the reliable path today.
+
