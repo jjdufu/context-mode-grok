@@ -7,6 +7,8 @@
  *   3. Fallback to Claude Code (low confidence — most common)
  *
  * Verified env vars per platform (from source code audit):
+ *   - Grok Build:     GROK_PLUGIN_ROOT, GROK_PLUGIN_DATA, GROK_HOME |
+ *                     ~/.grok/  (MUST detect before Claude — Grok injects CLAUDE_*)
  *   - Claude Code:    CLAUDE_CODE_ENTRYPOINT, CLAUDE_PLUGIN_ROOT,
  *                     CLAUDE_PROJECT_DIR, CLAUDE_SESSION_ID | ~/.claude/
  *   - Gemini CLI:     GEMINI_PROJECT_DIR (hooks), GEMINI_CLI (MCP) | ~/.gemini/
@@ -143,6 +145,17 @@ const _PLATFORM_ENV_VARS_RAW: ReadonlyArray<readonly [PlatformId, readonly Platf
   // VS Code integrated terminal that has VSCODE_PID set). They MUST be
   // checked here so detect resolves to claude-code BEFORE falling through
   // to vscode-copilot below.
+  // grok (Grok Build CLI) — MUST be listed BEFORE claude-code.
+  // Grok injects CLAUDE_PROJECT_DIR / CLAUDE_PLUGIN_ROOT for Claude-compat
+  // hooks, so checking Claude first would mis-detect and write sessions under
+  // ~/.claude/context-mode/. Verified env vars from ~/.grok/docs:
+  //   GROK_PLUGIN_ROOT, GROK_PLUGIN_DATA (plugin hooks), GROK_HOME (config root).
+  ["grok", [
+    { name: "GROK_PLUGIN_ROOT",  role: "identification" },
+    { name: "GROK_PLUGIN_DATA",  role: "identification" },
+    { name: "GROK_HOME",         role: "workspace" },
+    { name: "GROK_AGENT_ID",     role: "identification" },
+  ]],
   ["claude-code", [
     { name: "CLAUDE_CODE_ENTRYPOINT", role: "identification" },
     { name: "CLAUDE_PLUGIN_ROOT",     role: "identification" },
@@ -336,6 +349,7 @@ export function foreignIdentificationEnv(platform: PlatformId): Set<string> {
  */
 export function getSessionDirSegments(platform: string): string[] | null {
   switch (platform) {
+    case "grok":             return [".grok"];
     case "claude-code":      return [".claude"];
     case "gemini-cli":       return [".gemini"];
     case "antigravity":      return [".gemini"];
@@ -390,7 +404,7 @@ export function detectPlatform(clientInfo?: { name: string; version?: string }):
   if (platformOverride) {
     const validPlatforms: PlatformId[] = [
       "claude-code", "gemini-cli", "kilo", "opencode", "codex",
-      "vscode-copilot", "jetbrains-copilot", "copilot-cli", "cursor", "antigravity", "antigravity-cli", "kiro", "pi", "omp", "zed", "qwen-code", "kimi",
+      "vscode-copilot", "jetbrains-copilot", "copilot-cli", "cursor", "antigravity", "antigravity-cli", "kiro", "pi", "omp", "zed", "qwen-code", "kimi", "grok",
     ];
     if (validPlatforms.includes(platformOverride as PlatformId)) {
       return {
@@ -495,6 +509,18 @@ export function detectPlatform(clientInfo?: { name: string; version?: string }):
       platform: "copilot-cli",
       confidence: "medium",
       reason: "context-mode config in Copilot CLI home exists (mcp-config.json or hooks/context-mode.json; honors COPILOT_HOME)",
+    };
+  }
+
+  // Grok Build — probe BEFORE ~/.claude. Grok users often also have ~/.claude
+  // from Claude Code co-install or from Grok's Claude-compat settings scan;
+  // preferring ~/.claude would strand session DBs outside Grok's sandbox-writable
+  // ~/.grok/ tree.
+  if (existsSync(resolve(home, ".grok"))) {
+    return {
+      platform: "grok",
+      confidence: "medium",
+      reason: "~/.grok/ directory exists",
     };
   }
 
@@ -725,6 +751,11 @@ export async function getAdapter(platform?: PlatformId): Promise<HookAdapter> {
     case "kimi": {
       const { KimiAdapter } = await import("./kimi/index.js");
       return new KimiAdapter();
+    }
+
+    case "grok": {
+      const { GrokAdapter } = await import("./grok/index.js");
+      return new GrokAdapter();
     }
 
     default: {

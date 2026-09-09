@@ -341,7 +341,9 @@ function codexRedirectReason(command) {
 export function formatDecision(platform, decision, opts = {}) {
   if (!decision) return null;
 
-  const fmt = formatters[platform];
+  // Grok Build uses the same hookSpecificOutput shape as Claude Code
+  // (permissionDecision / updatedInput / additionalContext).
+  const fmt = formatters[platform] || (platform === "grok" ? formatters["claude-code"] : null);
   if (!fmt) return null;
 
   switch (decision.action) {

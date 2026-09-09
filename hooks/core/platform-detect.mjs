@@ -16,12 +16,14 @@
  * Order matters — same as detect.ts. Forks listed BEFORE the fork's
  * parent so collision detection works (e.g. cursor BEFORE vscode-copilot
  * because Cursor inherits VSCODE_PID as a fork; antigravity BEFORE
- * vscode-copilot for the same reason).
+ * vscode-copilot for the same reason). Grok BEFORE claude-code because
+ * Grok injects CLAUDE_PROJECT_DIR / CLAUDE_PLUGIN_ROOT for compat.
  */
 
 // Mirror of `PLATFORM_ENV_VARS` in src/adapters/detect.ts:33-77.
 // Keep in lock-step. If you change one, change the other.
 const PLATFORM_ENV_VARS_MIRROR = [
+  ["grok",               ["GROK_PLUGIN_ROOT", "GROK_PLUGIN_DATA", "GROK_HOME", "GROK_AGENT_ID"]],
   ["claude-code",        ["CLAUDE_PROJECT_DIR", "CLAUDE_SESSION_ID"]],
   ["antigravity",        ["ANTIGRAVITY_CLI_ALIAS"]],
   ["cursor",             ["CURSOR_TRACE_ID", "CURSOR_CLI"]],

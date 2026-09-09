@@ -19,6 +19,19 @@ description: |
 
 # Context Mode: Default for All Large Output
 
+## Grok Build CLI — two-step tool calling
+
+On **Grok Build**, context-mode tools are MCP tools. They are **not** native tools.
+
+1. Discover: `search_tool("ctx_execute")` (also `ctx_search`, `ctx_execute_file`, `ctx_batch_execute`, `ctx_fetch_and_index`)
+2. Call: `use_tool("context-mode__ctx_execute", { language, code, ... })`
+
+Wire name shape is `context-mode__<tool>` (not Claude's `mcp__plugin_context-mode_context-mode__<tool>`).
+
+Prefer denying large `run_terminal_command` / `read_file` / `web_fetch` / `open_page` in favor of the `ctx_*` tools above. SessionStart stdout is discarded on Grok — this skill and `configs/grok/AGENTS.md` are the routing source of truth.
+
+---
+
 ## MANDATORY RULE
 
 <context_mode_logic>

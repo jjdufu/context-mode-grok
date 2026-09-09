@@ -1,0 +1,33 @@
+{
+  "name": "context-mode",
+  "owner": {
+    "name": "Mert Koseoğlu",
+    "email": "code.bm.ksglu@gmail.com"
+  },
+  "metadata": {
+    "description": "Grok Build plugins — context-mode",
+    "version": "1.0.169-grok.1"
+  },
+  "plugins": [
+    {
+      "name": "context-mode",
+      "source": "./",
+      "description": "Grok Build MCP plugin that saves 98% of your context window. Sandboxed code execution, FTS5 knowledge base with BM25 ranking, and intent-driven search.",
+      "version": "1.0.169-grok.1",
+      "author": {
+        "name": "Mert Koseoğlu"
+      },
+      "category": "development",
+      "keywords": [
+        "mcp",
+        "context-window",
+        "sandbox",
+        "code-execution",
+        "fts5",
+        "bm25",
+        "grok",
+        "grok-build"
+      ]
+    }
+  ]
+}

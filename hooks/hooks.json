@@ -1,9 +1,9 @@
 {
-  "description": "Context-mode hooks — PreToolUse routing, PostToolUse session capture, UserPromptSubmit decisions, PreCompact snapshot, SessionStart context injection, Stop turn-end capture",
+  "description": "Context-mode hooks \u2014 PreToolUse routing, PostToolUse session capture, UserPromptSubmit decisions, PreCompact snapshot, SessionStart context injection, Stop turn-end capture",
   "hooks": {
     "PostToolUse": [
       {
-        "matcher": "Bash|Read|Write|Edit|NotebookEdit|Glob|Grep|TodoWrite|TaskCreate|TaskUpdate|EnterPlanMode|ExitPlanMode|Skill|Agent|AskUserQuestion|EnterWorktree|mcp__",
+        "matcher": "Bash|Read|Write|Edit|NotebookEdit|Glob|Grep|TodoWrite|TaskCreate|TaskUpdate|EnterPlanMode|ExitPlanMode|Skill|Agent|AskUserQuestion|EnterWorktree|mcp__|run_terminal_command|read_file|web_fetch|open_page|spawn_subagent|grep|context-mode__",
         "hooks": [
           {
             "type": "command",
@@ -98,6 +98,96 @@
       },
       {
         "matcher": "mcp__",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse.mjs\""
+          }
+        ]
+      },
+      {
+        "matcher": "run_terminal_command",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse.mjs\""
+          }
+        ]
+      },
+      {
+        "matcher": "read_file",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse.mjs\""
+          }
+        ]
+      },
+      {
+        "matcher": "web_fetch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse.mjs\""
+          }
+        ]
+      },
+      {
+        "matcher": "open_page",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse.mjs\""
+          }
+        ]
+      },
+      {
+        "matcher": "grep",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse.mjs\""
+          }
+        ]
+      },
+      {
+        "matcher": "spawn_subagent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse.mjs\""
+          }
+        ]
+      },
+      {
+        "matcher": "context-mode__ctx_execute",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse.mjs\""
+          }
+        ]
+      },
+      {
+        "matcher": "context-mode__ctx_execute_file",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse.mjs\""
+          }
+        ]
+      },
+      {
+        "matcher": "context-mode__ctx_batch_execute",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse.mjs\""
+          }
+        ]
+      },
+      {
+        "matcher": "context-mode__",
         "hooks": [
           {
             "type": "command",

@@ -28,7 +28,8 @@ await runHook(async () => {
   const { readStdin } = await import("./core/stdin.mjs");
   const { routePreToolUse, initSecurity } = await import("./core/routing.mjs");
   const { formatDecision } = await import("./core/formatters.mjs");
-  const { parseStdin, getInputProjectDir, getSessionId, resolveConfigDir } = await import("./session-helpers.mjs");
+  const { parseStdin, getInputProjectDir, getSessionId, resolveConfigDir, normalizeHookPayload, optsForPlatform } = await import("./session-helpers.mjs");
+  const { detectPlatformFromEnv } = await import("./core/platform-detect.mjs");
 
   // ─── Manual recursive copy (avoids cpSync libuv crash on non-ASCII paths, Windows + Node 24) ───
   function copyDirSync(src, dest) {
@@ -160,17 +161,19 @@ await runHook(async () => {
 
   // ─── Read stdin ───
   const raw = await readStdin();
-  const input = parseStdin(raw);
-  const tool = input.tool_name ?? "";
-  const toolInput = input.tool_input ?? {};
-  const projectDir = getInputProjectDir(input);
-  const isSubagentContext = input.agent_id != null || input.agent_type != null;
+  const input = normalizeHookPayload(parseStdin(raw));
+  const platform = detectPlatformFromEnv();
+  const platformOpts = optsForPlatform(platform);
+  const tool = input.tool_name ?? input.toolName ?? "";
+  const toolInput = input.tool_input ?? input.toolInput ?? {};
+  const projectDir = getInputProjectDir(input, platformOpts);
+  const isSubagentContext = input.agent_id != null || input.agent_type != null || input.agentId != null;
 
   // ─── Route and format response ───
-  const decision = routePreToolUse(tool, toolInput, projectDir, "claude-code", getSessionId(input), {
+  const decision = routePreToolUse(tool, toolInput, projectDir, platform, getSessionId(input, platformOpts), {
     mcpToolsAvailable: !isSubagentContext,
   });
-  const response = formatDecision("claude-code", decision);
+  const response = formatDecision(platform, decision);
 
   // ─── Write latency marker for cross-hook timing (Category 27) ───
   // Marker writes MUST happen before stdout write — stdout is the last action

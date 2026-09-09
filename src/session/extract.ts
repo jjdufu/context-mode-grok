@@ -2693,6 +2693,10 @@ const TOOL_NAME_NORMALIZE: Record<string, string> = {
   read_url_content: "WebFetch",
   list_dir: "LS",
   search_web: "WebSearch",
+  // Grok Build CLI
+  run_terminal_command: "Bash",
+  spawn_subagent: "Agent",
+  open_page: "WebFetch",
 };
 
 function normalizeHookInput(input: HookInput): HookInput {

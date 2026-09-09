@@ -1,0 +1,71 @@
+{
+  "description": "context-mode hooks for Grok Build CLI — native tool names + Claude aliases",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "run_terminal_command|read_file|web_fetch|open_page|grep|spawn_subagent|Bash|Read|WebFetch|Grep|Agent|Task|context-mode__ctx_execute|context-mode__ctx_execute_file|context-mode__ctx_batch_execute|context-mode__|mcp__",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${GROK_PLUGIN_ROOT}/hooks/grok/pretooluse.mjs\""
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "run_terminal_command|read_file|web_fetch|open_page|grep|spawn_subagent|Bash|Read|WebFetch|Grep|Agent|Write|Edit|context-mode__|mcp__",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${GROK_PLUGIN_ROOT}/hooks/grok/posttooluse.mjs\""
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${GROK_PLUGIN_ROOT}/hooks/grok/sessionstart.mjs\""
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${GROK_PLUGIN_ROOT}/hooks/grok/precompact.mjs\""
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${GROK_PLUGIN_ROOT}/hooks/grok/userpromptsubmit.mjs\""
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${GROK_PLUGIN_ROOT}/hooks/grok/stop.mjs\""
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -8,7 +8,7 @@ context-mode supports 17 client platforms, plus the OpenClaw gateway integration
 
 | Paradigm | Platforms |
 |----------|-----------|
-| **JSON stdin/stdout** | Claude Code, Gemini CLI, VS Code Copilot, JetBrains Copilot, GitHub Copilot CLI, Cursor, Codex CLI, Qwen Code, Kimi Code, Antigravity CLI (`agy`), Kiro |
+| **JSON stdin/stdout** | Claude Code, Gemini CLI, VS Code Copilot, JetBrains Copilot, GitHub Copilot CLI, Cursor, Codex CLI, Qwen Code, Kimi Code, Antigravity CLI (`agy`), Kiro, **Grok Build** |
 | **TS Plugin** | OpenCode, KiloCode, OpenClaw |
 | **MCP-only** | Antigravity, Zed, Pi, OMP (Oh My Pi) |
 
@@ -255,6 +255,36 @@ context-mode hook codex stop
   memory may not record events.
 
 ---
+
+
+
+### Grok Build
+
+**Status:** Supported (stdio MCP + hooks + skills + plugin install)
+
+**Hook Paradigm:** JSON stdin/stdout (Claude-compatible, camelCase payloads)
+
+Grok Build CLI (`grok`) supports stdio MCP, Claude-compatible hooks, skills, and `.grok-plugin/` / `.claude-plugin/` installs. context-mode detects Grok via `GROK_PLUGIN_ROOT` / `GROK_PLUGIN_DATA` / `GROK_HOME` **before** Claude Code (Grok also injects `CLAUDE_*` for compat).
+
+**Tool calling:** MCP tools are invoked with Grok's two-step flow — `search_tool` then `use_tool("context-mode__ctx_execute", …)`.
+
+**Known limitations:**
+- `SessionStart` / `UserPromptSubmit` stdout and allow-path `additionalContext` are discarded — put routing in `skills/context-mode/SKILL.md`, `configs/grok/AGENTS.md`, and PreToolUse deny reasons.
+- PreToolUse `additionalContext` arrives **after** the tool runs; prefer deny-with-reason for first-call protection.
+- `updatedInput` cannot retarget `use_tool` to a different tool.
+- Native tool names: `run_terminal_command`, `read_file`, `web_fetch` / `open_page`, `spawn_subagent`, `grep` (Claude matcher aliases also work).
+- Session DB: `~/.grok/context-mode/sessions/` (honors `$GROK_HOME`).
+
+**Install:**
+```bash
+npm install -g context-mode   # or npm link from a local checkout
+grok mcp add context-mode -- context-mode
+grok mcp doctor context-mode
+# optional plugin (hooks + skills):
+grok plugin install /path/to/context-mode --trust
+```
+
+See `GROK_ADAPTATION.md` in the repo root for the full adaptation notes.
 
 ### Kimi Code
 

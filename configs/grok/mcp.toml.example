@@ -1,0 +1,9 @@
+# Add to ~/.grok/config.toml — prefer global binary (avoid cold npx timeout)
+
+[mcp_servers.context-mode]
+command = "context-mode"
+startup_timeout_sec = 30
+
+# Optional explicit platform pin for the MCP child:
+# [mcp_servers.context-mode.env]
+# CONTEXT_MODE_PLATFORM = "grok"
