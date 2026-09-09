@@ -35,6 +35,8 @@ await runHook(async () => {
     getSessionEventsPath,
     getCleanupFlagPath,
     resolveConfigDir,
+    normalizeHookPayload,
+    optsForPlatform,
   } = await import("./session-helpers.mjs");
   const { writeSessionEventsFile, buildSessionDirective, getSessionEvents } = await import(
     "./session-directive.mjs"
@@ -45,6 +47,7 @@ await runHook(async () => {
   const { readFileSync, unlinkSync, readdirSync, rmSync, lstatSync, realpathSync, symlinkSync } = await import("node:fs");
 
   const detectedPlatform = detectPlatformFromEnv();
+  const platformOpts = optsForPlatform(detectedPlatform);
   const toolNamer = createToolNamer(detectedPlatform);
   const ROUTING_BLOCK = createRoutingBlock(toolNamer);
 
@@ -147,9 +150,9 @@ await runHook(async () => {
     } catch { /* missing/malformed manifest — skip self-heal */ }
 
     if (currentVersion) {
-      const snapshotsDir = resolve(resolveConfigDir(), "shell-snapshots");
+      const snapshotsDir = resolve(resolveConfigDir(platformOpts), "shell-snapshots");
       const pluginCacheRoot = resolve(
-        resolveConfigDir(),
+        resolveConfigDir(platformOpts),
         "plugins",
         "cache",
         "context-mode",
@@ -185,15 +188,15 @@ await runHook(async () => {
 
   try {
     const raw = await readStdin();
-    const input = parseStdin(raw);
+    const input = normalizeHookPayload(parseStdin(raw));
     const source = input.source ?? "startup";
 
     if (source === "compact") {
       // Session was compacted — write events to file for auto-indexing, inject directive only
       const { SessionDB } = await loadSessionDB();
-      const dbPath = getSessionDBPath();
+      const dbPath = getSessionDBPath(platformOpts);
       const db = new SessionDB({ dbPath });
-      const sessionId = getSessionId(input);
+      const sessionId = getSessionId(input, platformOpts);
       const resume = db.getResume(sessionId);
 
       if (resume && !resume.consumed) {
@@ -202,7 +205,7 @@ await runHook(async () => {
 
       const events = getSessionEvents(db, sessionId);
       if (events.length > 0) {
-        const eventMeta = writeSessionEventsFile(events, getSessionEventsPath());
+        const eventMeta = writeSessionEventsFile(events, getSessionEventsPath(platformOpts));
         additionalContext += buildSessionDirective("compact", eventMeta, toolNamer);
 
         // Auto-inject behavioral state on compaction (role, decisions, skills, intent)
@@ -224,7 +227,7 @@ await runHook(async () => {
             : (db.getResume?.(sessionId) ?? null);
           const snapshotBytes = resumeRow?.snapshot?.length ?? 0;
           const { resolveProjectAttributions } = await loadProjectAttribution();
-          const projectDirResumeMeta = getInputProjectDir(input);
+          const projectDirResumeMeta = getInputProjectDir(input, platformOpts);
 
           await attributeAndInsertEvents(
             db,
@@ -254,26 +257,26 @@ await runHook(async () => {
       // Cross-platform projectDir via getInputProjectDir (covers cursor's
       // workspace_roots[], codex/gemini/qwen's *_PROJECT_DIR env vars,
       // CC's CLAUDE_PROJECT_DIR, falls back to input.cwd and process.cwd).
-      const projectDirCompact = getInputProjectDir(input);
+      const projectDirCompact = getInputProjectDir(input, platformOpts);
       await emitSessionStartLifecycle(db, sessionId, "compact", projectDirCompact, input);
       db.close();
     } else if (source === "resume") {
       // User invoked --continue, --resume, or /resume — clear cleanup flag so
       // startup doesn't wipe data on the next fresh boot.
-      try { unlinkSync(getCleanupFlagPath()); } catch { /* no flag */ }
+      try { unlinkSync(getCleanupFlagPath(platformOpts)); } catch { /* no flag */ }
 
       const { SessionDB } = await loadSessionDB();
-      const dbPath = getSessionDBPath();
+      const dbPath = getSessionDBPath(platformOpts);
       const db = new SessionDB({ dbPath });
 
       // 1) Try live events for the resumed session. Filter strictly to the
       //    incoming session_id — falling back to getLatestSessionEvents(db)
       //    leaks events from any other session whose session_meta.started_at
       //    is more recent (cross-worktree bleed observed in the wild).
-      const sessionId = getSessionId(input);
+      const sessionId = getSessionId(input, platformOpts);
       const events = sessionId ? getSessionEvents(db, sessionId) : [];
       if (events.length > 0) {
-        const eventMeta = writeSessionEventsFile(events, getSessionEventsPath());
+        const eventMeta = writeSessionEventsFile(events, getSessionEventsPath(platformOpts));
         additionalContext += buildSessionDirective("resume", eventMeta, toolNamer);
       } else if (sessionId) {
         // 2) Snapshot fallback (#413). /resume hands us a *new* active session
@@ -288,7 +291,7 @@ await runHook(async () => {
         }
       }
 
-      const projectDirResume = getInputProjectDir(input);
+      const projectDirResume = getInputProjectDir(input, platformOpts);
       if (sessionId) {
         await emitSessionStartLifecycle(db, sessionId, "resume", projectDirResume, input);
       }
@@ -296,9 +299,9 @@ await runHook(async () => {
     } else if (source === "startup") {
       // Fresh session (no --continue) — clean slate, capture CLAUDE.md rules.
       const { SessionDB } = await loadSessionDB();
-      const dbPath = getSessionDBPath();
+      const dbPath = getSessionDBPath(platformOpts);
       const db = new SessionDB({ dbPath });
-      try { unlinkSync(getSessionEventsPath()); } catch { /* no stale file */ }
+      try { unlinkSync(getSessionEventsPath(platformOpts)); } catch { /* no stale file */ }
 
       // Detect true fresh start vs --continue (which fires startup→resume).
       // If cleanup flag exists from a PREVIOUS startup that was never followed by
@@ -334,12 +337,12 @@ await runHook(async () => {
       // Proactively capture CLAUDE.md files — Claude Code loads them as system
       // context at startup, invisible to PostToolUse hooks. We read them from
       // disk so they survive compact/resume via the session events pipeline.
-      const sessionId = getSessionId(input);
+      const sessionId = getSessionId(input, platformOpts);
       // v1.0.160: cross-adapter projectDir resolution (was hardcoded CC env).
-      const projectDir = getInputProjectDir(input);
+      const projectDir = getInputProjectDir(input, platformOpts);
       db.ensureSession(sessionId, projectDir);
       const claudeMdPaths = [
-        join(resolveConfigDir(), "CLAUDE.md"),
+        join(resolveConfigDir(platformOpts), "CLAUDE.md"),
         join(projectDir, "CLAUDE.md"),
         join(projectDir, ".claude", "CLAUDE.md"),
       ];

@@ -1,9 +1,9 @@
 {
   "name": "context-mode",
-  "version": "1.0.169",
+  "version": "1.0.169-grok.1",
   "type": "module",
-  "description": "MCP plugin that saves 98% of your context window. Works with Claude Code, Gemini CLI, VS Code Copilot, OpenCode, and Codex CLI. Sandboxed code execution, FTS5 knowledge base, and intent-driven search.",
-  "author": "Mert Koseoğlu",
+  "description": "MCP plugin that saves 98% of your context window. Works with Claude Code, Gemini CLI, VS Code Copilot, OpenCode, Codex CLI, and Grok Build. Sandboxed code execution, FTS5 knowledge base, and intent-driven search.",
+  "author": "Mert Koseo\u011flu",
   "license": "Elastic-2.0",
   "keywords": [
     "mcp",
@@ -20,7 +20,9 @@
     "code-execution",
     "fts5",
     "bm25",
-    "pi-package"
+    "pi-package",
+    "grok",
+    "grok-build"
   ],
   "repository": {
     "type": "git",
@@ -42,7 +44,7 @@
   },
   "omp": {
     "name": "context-mode",
-    "description": "Save 98% of your context window in OMP — sandboxed code execution, FTS5 search, hard-block curl/wget, session continuity across compaction.",
+    "description": "Save 98% of your context window in OMP \u2014 sandboxed code execution, FTS5 search, hard-block curl/wget, session continuity across compaction.",
     "extensions": [
       "./build/adapters/omp/plugin.js"
     ]
@@ -67,6 +69,7 @@
     "bin",
     "skills",
     ".claude-plugin",
+    ".grok-plugin",
     ".codex-plugin",
     ".openclaw-plugin",
     "openclaw.plugin.json",

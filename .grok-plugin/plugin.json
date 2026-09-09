@@ -1,0 +1,35 @@
+{
+  "name": "context-mode",
+  "version": "1.0.169-grok.1",
+  "description": "MCP plugin that saves 98% of your context window on Grok Build. Sandboxed code execution, FTS5 knowledge base, and hook routing for run_terminal_command / read_file / web_fetch.",
+  "author": {
+    "name": "Mert Koseo\u011flu",
+    "url": "https://github.com/mksglu"
+  },
+  "homepage": "https://github.com/mksglu/context-mode#readme",
+  "repository": "https://github.com/mksglu/context-mode",
+  "license": "Elastic-2.0",
+  "keywords": [
+    "mcp",
+    "context-window",
+    "sandbox",
+    "code-execution",
+    "fts5",
+    "bm25",
+    "grok",
+    "grok-build"
+  ],
+  "hooks": "./hooks/grok/hooks.json",
+  "skills": "./skills/",
+  "mcpServers": {
+    "context-mode": {
+      "command": "node",
+      "args": [
+        "${GROK_PLUGIN_ROOT}/start.mjs"
+      ],
+      "env": {
+        "CONTEXT_MODE_PLATFORM": "grok"
+      }
+    }
+  }
+}

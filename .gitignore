@@ -44,3 +44,7 @@ context-mode-guidance-*/
 tools/pricing/litellm-catalog.json
 /.cocoindex_code/
 /.kilo/
+
+# macOS AppleDouble
+._*
+**/._*

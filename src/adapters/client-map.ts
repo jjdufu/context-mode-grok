@@ -42,4 +42,13 @@ export const CLIENT_NAME_TO_PLATFORM: Record<string, PlatformId> = {
   "kimi-code": "kimi",
   "kimi": "kimi",
   "Kimi Code": "kimi",
+  // Grok Build CLI — clientInfo.name aliases probed from grok binary strings
+  // (xai-grok-cli / grok-cli / grok-build / xai-grok-shell / xai-grok-build).
+  "grok-cli": "grok",
+  "grok-build": "grok",
+  "xai-grok-cli": "grok",
+  "xai-grok-shell": "grok",
+  "xai-grok-build": "grok",
+  "Grok Build": "grok",
+  "grok": "grok",
 };

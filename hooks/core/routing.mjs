@@ -551,6 +551,10 @@ const TOOL_ALIASES = {
   "Shell": "Bash",
   // VS Code Copilot
   "run_in_terminal": "Bash",
+  // Grok Build CLI native tool names
+  "run_terminal_command": "Bash",
+  "spawn_subagent": "Agent",
+  "open_page": "WebFetch",
   // Kiro CLI (https://kiro.dev/docs/cli/hooks/)
   "fs_read": "Read",
   "fs_write": "Write",
@@ -579,6 +583,7 @@ function matchesContextModeTool(toolName, ctxName, legacyName) {
 //   - `mcp__<server>__<tool>`     Claude Code / Gemini CLI / Antigravity / Qwen Code / Codex
 //   - `MCP:<tool>`                Cursor
 //   - `@<server>/<tool>`          Kiro
+//   - `<server>__<tool>`         Grok Build
 //
 // Tools belonging to context-mode itself are excluded — they have dedicated
 // routing branches above (ctx_execute, ctx_execute_file, ctx_batch_execute)
@@ -613,6 +618,17 @@ function isExternalMcpTool(toolName) {
     return !server.includes(CONTEXT_MODE_SUBSTRING);
   }
 
+  // Grok Build wire shape: `server__tool` (e.g. `linear__save_issue`,
+  // `context-mode__ctx_execute`). Exclude names that already matched mcp__/MCP:
+  // above. Require exactly one `__` separator group after a non-empty server
+  // segment that does not itself start with mcp.
+  if (!raw.startsWith(MCP_PREFIX) && !raw.startsWith(CURSOR_MCP_PREFIX) && raw.includes("__")) {
+    const server = raw.split("__")[0];
+    if (!server || server.includes("/")) return false;
+    // Own tools: context-mode__ctx_* — not external
+    return !server.includes(CONTEXT_MODE_SUBSTRING);
+  }
+
   return false;
 }
 
@@ -627,6 +643,7 @@ function getShellCommand(toolInput) {
 function getReadFilePath(toolInput) {
   if (!toolInput || typeof toolInput !== "object") return "";
   if (typeof toolInput.file_path === "string") return toolInput.file_path;
+  if (typeof toolInput.target_file === "string") return toolInput.target_file; // Grok Build
   if (typeof toolInput.path === "string") return toolInput.path;
   if (typeof toolInput.AbsolutePath === "string") return toolInput.AbsolutePath;
   if (typeof toolInput.FilePath === "string") return toolInput.FilePath;

@@ -19,7 +19,10 @@ await runHook(async () => {
     getSessionId,
     getSessionDBPath,
     getInputProjectDir,
+    normalizeHookPayload,
+    optsForPlatform,
   } = await import("./session-helpers.mjs");
+  const { detectPlatformFromEnv } = await import("./core/platform-detect.mjs");
   const { createSessionLoaders, attributeAndInsertEvents } = await import("./session-loaders.mjs");
   const { dirname, resolve, basename } = await import("node:path");
   const { fileURLToPath } = await import("node:url");
@@ -33,16 +36,18 @@ await runHook(async () => {
 
   try {
     const raw = await readStdin();
-    const input = parseStdin(raw);
-    const projectDir = getInputProjectDir(input);
+    const input = normalizeHookPayload(parseStdin(raw));
+    const platform = detectPlatformFromEnv();
+    const platformOpts = optsForPlatform(platform);
+    const projectDir = getInputProjectDir(input, platformOpts);
 
     const { extractEvents } = await loadExtract();
     const { resolveProjectAttributions } = await loadProjectAttribution();
     const { SessionDB } = await loadSessionDB();
 
-    const dbPath = getSessionDBPath();
+    const dbPath = getSessionDBPath(platformOpts, projectDir);
     const db = new SessionDB({ dbPath });
-    const sessionId = getSessionId(input);
+    const sessionId = getSessionId(input, platformOpts);
 
     // Ensure session meta exists
     db.ensureSession(sessionId, projectDir);
@@ -145,7 +150,7 @@ await runHook(async () => {
 
     // ─── Category 27: Latency — read cross-hook marker and emit event if slow ───
     try {
-      const toolName = input.tool_name ?? "";
+      const toolName = input.tool_name ?? input.toolName ?? "";
       if (toolName) {
         const markerPath = resolve(tmpdir(), `context-mode-latency-${sessionId}-${toolName}.txt`);
         let startTime;

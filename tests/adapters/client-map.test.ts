@@ -81,4 +81,14 @@ describe("CLIENT_NAME_TO_PLATFORM", () => {
   it("returns undefined for unknown client name", () => {
     expect(CLIENT_NAME_TO_PLATFORM["some-unknown-client"]).toBeUndefined();
   });
+
+  it('maps grok clientInfo names to "grok"', () => {
+    expect(CLIENT_NAME_TO_PLATFORM["grok-cli"]).toBe("grok");
+    expect(CLIENT_NAME_TO_PLATFORM["grok-build"]).toBe("grok");
+    expect(CLIENT_NAME_TO_PLATFORM["xai-grok-cli"]).toBe("grok");
+    expect(CLIENT_NAME_TO_PLATFORM["xai-grok-shell"]).toBe("grok");
+    expect(CLIENT_NAME_TO_PLATFORM["xai-grok-build"]).toBe("grok");
+    expect(CLIENT_NAME_TO_PLATFORM["Grok Build"]).toBe("grok");
+    expect(CLIENT_NAME_TO_PLATFORM["grok"]).toBe("grok");
+  });
 });

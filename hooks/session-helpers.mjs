@@ -223,6 +223,59 @@ export const JETBRAINS_OPTS = {
   sessionIdEnv: undefined,
 };
 
+/** Grok Build CLI platform options.
+ * Honors $GROK_HOME (documented config root). Plugin hooks also set
+ * GROK_PLUGIN_ROOT / GROK_PLUGIN_DATA (and Claude aliases).
+ */
+export const GROK_OPTS = {
+  configDir: ".grok",
+  configDirEnv: "GROK_HOME",
+  projectDirEnv: "GROK_PROJECT_DIR",
+  sessionIdEnv: "GROK_SESSION_ID",
+};
+
+/** Map detectPlatformFromEnv() id → session opts. */
+export function optsForPlatform(platform) {
+  switch (platform) {
+    case "grok": return GROK_OPTS;
+    case "gemini-cli": return GEMINI_OPTS;
+    case "antigravity-cli": return ANTIGRAVITY_CLI_OPTS;
+    case "vscode-copilot": return VSCODE_OPTS;
+    case "copilot-cli": return COPILOT_OPTS;
+    case "cursor": return CURSOR_OPTS;
+    case "codex": return CODEX_OPTS;
+    case "kiro": return KIRO_OPTS;
+    case "kimi": return KIMI_OPTS;
+    case "jetbrains-copilot": return JETBRAINS_OPTS;
+    default: return CLAUDE_OPTS;
+  }
+}
+
+/**
+ * Normalize Grok camelCase hook payloads onto Claude snake_case fields so
+ * shared extractors / markers keep working.
+ */
+export function normalizeHookPayload(input) {
+  if (!input || typeof input !== "object") return input ?? {};
+  const out = { ...input };
+  if (out.tool_name == null && out.toolName != null) out.tool_name = out.toolName;
+  if (out.tool_input == null && out.toolInput != null) out.tool_input = out.toolInput;
+  if (out.tool_output == null && out.toolOutput != null) out.tool_output = out.toolOutput;
+  if (out.is_error == null && out.isError != null) out.is_error = out.isError;
+  if (out.session_id == null && out.sessionId != null) out.session_id = out.sessionId;
+  if (out.hook_event_name == null && out.hookEventName != null) {
+    out.hook_event_name = out.hookEventName;
+  }
+  // Promote Grok Read path field into file_path for routing helpers that
+  // already understand file_path (getReadFilePath also checks target_file).
+  if (out.tool_input && typeof out.tool_input === "object") {
+    const ti = { ...out.tool_input };
+    if (ti.file_path == null && ti.target_file != null) ti.file_path = ti.target_file;
+    out.tool_input = ti;
+  }
+  return out;
+}
+
 /**
  * Resolve the platform config directory, respecting env var overrides.
  * Platforms like Claude Code (CLAUDE_CONFIG_DIR), Gemini CLI (GEMINI_CLI_HOME),
@@ -350,6 +403,9 @@ export function getProjectDir(opts = CLAUDE_OPTS) {
 export function getInputProjectDir(input, opts = CLAUDE_OPTS) {
   if (typeof input?.cwd === "string" && input.cwd.length > 0) {
     return input.cwd;
+  }
+  if (typeof input?.workspaceRoot === "string" && input.workspaceRoot.length > 0) {
+    return input.workspaceRoot; // Grok Build camelCase
   }
   if (Array.isArray(input?.workspace_roots) && input.workspace_roots.length > 0) {
     return String(input.workspace_roots[0]);

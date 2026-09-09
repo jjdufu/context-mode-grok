@@ -14,6 +14,7 @@
  * | Kiro               | @context-mode/<tool>                                       |
  * | Zed                | mcp:context-mode:<tool>                                    |
  * | Cursor / Codex / OpenClaw / Pi | bare <tool>                                    |
+ * | Grok Build        | context-mode__<tool> (then search_tool + use_tool) |
  */
 
 const TOOL_PREFIXES = {
@@ -34,6 +35,8 @@ const TOOL_PREFIXES = {
   "openclaw":       (tool) => tool,
   "pi":             (tool) => tool,
   "qwen-code":      (tool) => `mcp__context-mode__${tool}`,
+  // Grok Build qualifies MCP as server__tool (not mcp__server__tool)
+  "grok":           (tool) => `context-mode__${tool}`,
 };
 
 /**
