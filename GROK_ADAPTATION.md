@@ -64,15 +64,20 @@ grok mcp doctor context-mode
 
 Grok lists plugin hooks in `grok inspect` (`has_hooks=true`) but **does not activate** them at runtime on this version: it opens `~/.grok/trusted-plugins`, and when that file is missing, plugin hooks stay inert. `grok plugin install --trust` does not create the file (format still undocumented).
 
-**Workaround (verified):** install a global hooks bridge:
+**Auto-install (preferred):** `~/.grok/hooks/context-mode.json` is installed idempotently by:
+
+- `start.mjs` on MCP boot when `CONTEXT_MODE_PLATFORM=grok`, `GROK_PLUGIN_ROOT` is set, or the package lives under `~/.grok/installed-plugins` / `~/.grok/plugins`
+- `scripts/postinstall.mjs` when `~/.grok` already exists (or the same Grok signals above)
+
+The bridge points at `hooks/grok/pretooluse.mjs` / `posttooluse.mjs` (deny → ctx_*). Verified: large `read_file` returns `Hook denied` and steers toward `context-mode__ctx_execute_file`. Re-runs skip rewrite when the JSON already targets the same plugin root.
+
+**Manual fallback** (if auto-install did not run — e.g. no MCP start yet and no `~/.grok`):
 
 ```bash
 node scripts/grok-install-global-hooks.mjs
 # or from an installed plugin copy:
-node ~/.grok/installed-plugins/context-mode-*/scripts/grok-install-global-hooks.mjs
+node ~/.grok/installed-plugins/context-mode-<id>/scripts/grok-install-global-hooks.mjs
 ```
-
-This writes `~/.grok/hooks/context-mode.json` pointing at `hooks/grok/pretooluse.mjs` (deny → ctx_*). Verified: large `read_file` returns `Hook denied` and steers toward `context-mode__ctx_execute_file`.
 
 Keep shipping `hooks/hooks.json` + `.grok-plugin/plugin.json` for when plugin trust lands; the global bridge is the reliable path today.
 

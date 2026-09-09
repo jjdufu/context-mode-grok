@@ -75,6 +75,7 @@
     "openclaw.plugin.json",
     "start.mjs",
     "scripts/postinstall.mjs",
+    "scripts/grok-install-global-hooks.mjs",
     "scripts/heal-better-sqlite3.mjs",
     "scripts/heal-installed-plugins.mjs",
     "scripts/plugin-cache-integrity.mjs",

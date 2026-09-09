@@ -382,3 +382,26 @@ if (isGlobalInstall() && !TMPDIR_UPGRADE_RE.test(pkgRoot)) {
     });
   } catch { /* best effort — never block install */ }
 }
+
+// ── 5. Grok global hooks bridge (when ~/.grok present) ─────────────
+// Grok 1.0.24 does not activate plugin hooks without trusted-plugins;
+// ~/.grok/hooks/context-mode.json is the verified PreToolUse path.
+// Install when the user already has Grok (HOME/.grok), or when this
+// package is clearly a Grok install. Never fail npm install.
+{
+  try {
+    const home = process.env.HOME || process.env.USERPROFILE || homedir();
+    const grokHomeExists = existsSync(resolve(home, ".grok"));
+    const underGrokPlugin =
+      /[/\\]\.grok[/\\](installed-plugins|plugins)[/\\]/.test(pkgRoot);
+    const isGrok =
+      process.env.CONTEXT_MODE_PLATFORM === "grok" ||
+      !!(process.env.GROK_PLUGIN_ROOT && String(process.env.GROK_PLUGIN_ROOT).trim()) ||
+      underGrokPlugin ||
+      grokHomeExists;
+    if (isGrok) {
+      const { installGrokGlobalHooks } = await import("./grok-install-global-hooks.mjs");
+      installGrokGlobalHooks({ pluginRoot: pkgRoot });
+    }
+  } catch { /* never fail install */ }
+}
