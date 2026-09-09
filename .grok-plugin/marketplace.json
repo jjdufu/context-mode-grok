@@ -1,32 +1,27 @@
 {
-  "name": "context-mode",
+  "name": "context-mode-grok",
+  "description": "Private marketplace: context-mode adapted for Grok Build CLI (jjdufu fork).",
   "owner": {
-    "name": "Mert Koseoğlu",
-    "email": "code.bm.ksglu@gmail.com"
-  },
-  "metadata": {
-    "description": "Grok Build plugins — context-mode",
-    "version": "1.0.169-grok.1"
+    "name": "jjdufu",
+    "email": ""
   },
   "plugins": [
     {
       "name": "context-mode",
-      "source": "./",
-      "description": "Grok Build MCP plugin that saves 98% of your context window. Sandboxed code execution, FTS5 knowledge base with BM25 ranking, and intent-driven search.",
+      "description": "MCP plugin that saves context on Grok Build. Sandboxed execution, FTS5 KB, and hook routing for run_terminal_command / read_file / web_fetch. Auto-installs global hooks bridge on MCP start.",
+      "category": "productivity",
       "version": "1.0.169-grok.1",
-      "author": {
-        "name": "Mert Koseoğlu"
+      "source": {
+        "type": "local",
+        "path": "./"
       },
-      "category": "development",
+      "homepage": "https://github.com/jjdufu/context-mode-grok",
       "keywords": [
         "mcp",
-        "context-window",
-        "sandbox",
-        "code-execution",
-        "fts5",
-        "bm25",
+        "context-mode",
         "grok",
-        "grok-build"
+        "grok-build",
+        "context-window"
       ]
     }
   ]

@@ -81,3 +81,14 @@ node ~/.grok/installed-plugins/context-mode-<id>/scripts/grok-install-global-hoo
 
 Keep shipping `hooks/hooks.json` + `.grok-plugin/plugin.json` for when plugin trust lands; the global bridge is the reliable path today.
 
+## Private marketplace install
+
+This repo doubles as a Grok marketplace (`context-mode-grok`) and the plugin itself.
+
+```bash
+grok plugin marketplace add jjdufu/context-mode-grok
+grok plugin install context-mode --trust
+grok plugin enable context-mode
+```
+
+After rename from `jjdufu/context-mode`, use the new GitHub name above. MCP start auto-installs `~/.grok/hooks/context-mode.json`.
