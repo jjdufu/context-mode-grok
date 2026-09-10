@@ -10,7 +10,7 @@
       "name": "context-mode",
       "description": "MCP plugin for Grok Build \u2014 context sandbox, FTS5 KB, hook routing. Auto-installs global hooks on MCP start.",
       "category": "productivity",
-      "version": "1.0.169-grok.1",
+      "version": "1.0.169-grok.2",
       "source": {
         "source": "url",
         "url": "https://github.com/jjdufu/context-mode-grok.git",

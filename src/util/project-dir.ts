@@ -55,8 +55,9 @@ const LEGACY_NON_STRICT_CANDIDATES: readonly string[] = [
 /**
  * Detect whether a path lives inside an agent plugin install tree —
  * specifically `<home>/.claude/plugins/cache/<plugin>/<plugin>/<version>/`,
- * `<home>/.codex/plugins/cache/<plugin>/<plugin>/<version>/`, or the
- * marketplace mirror under `<home>/.{claude,codex}/plugins/marketplaces/...`.
+ * `<home>/.codex/plugins/cache/<plugin>/<plugin>/<version>/`, the
+ * marketplace mirror under `<home>/.{claude,codex}/plugins/marketplaces/...`,
+ * or Grok plugin trees under `<home>/.grok/(installed-plugins|plugins)/`.
  *
  * Cross-OS: matches both POSIX (`/`) and Windows (`\`) path separators.
  * Independent of `home` location — we only care about the agent plugin
@@ -64,7 +65,10 @@ const LEGACY_NON_STRICT_CANDIDATES: readonly string[] = [
  */
 export function isPluginInstallPath(p: string): boolean {
   if (!p) return false;
-  return /[/\\]\.(claude|codex)[/\\]plugins[/\\](cache|marketplaces)[/\\]/.test(p);
+  return (
+    /[/\\]\.(claude|codex)[/\\]plugins[/\\](cache|marketplaces)[/\\]/.test(p) ||
+    /[/\\]\.grok[/\\](installed-plugins|plugins)[/\\]/.test(p)
+  );
 }
 
 /**

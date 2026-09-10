@@ -7,8 +7,10 @@
  *   3. Fallback to Claude Code (low confidence — most common)
  *
  * Verified env vars per platform (from source code audit):
- *   - Grok Build:     GROK_PLUGIN_ROOT, GROK_PLUGIN_DATA, GROK_HOME |
+ *   - Grok Build:     GROK_PLUGIN_ROOT, GROK_PLUGIN_DATA, GROK_HOME,
+ *                     GROK_PROJECT_DIR, GROK_AGENT_ID |
  *                     ~/.grok/  (MUST detect before Claude — Grok injects CLAUDE_*)
+ *                     GROK_HOME = config root (identification); GROK_PROJECT_DIR = workspace
  *   - Claude Code:    CLAUDE_CODE_ENTRYPOINT, CLAUDE_PLUGIN_ROOT,
  *                     CLAUDE_PROJECT_DIR, CLAUDE_SESSION_ID | ~/.claude/
  *   - Gemini CLI:     GEMINI_PROJECT_DIR (hooks), GEMINI_CLI (MCP) | ~/.gemini/
@@ -149,11 +151,14 @@ const _PLATFORM_ENV_VARS_RAW: ReadonlyArray<readonly [PlatformId, readonly Platf
   // Grok injects CLAUDE_PROJECT_DIR / CLAUDE_PLUGIN_ROOT for Claude-compat
   // hooks, so checking Claude first would mis-detect and write sessions under
   // ~/.claude/context-mode/. Verified env vars from ~/.grok/docs:
-  //   GROK_PLUGIN_ROOT, GROK_PLUGIN_DATA (plugin hooks), GROK_HOME (config root).
+  //   GROK_PLUGIN_ROOT, GROK_PLUGIN_DATA (plugin hooks), GROK_HOME (config root —
+  //   identification only; must NOT be treated as project/workspace dir),
+  //   GROK_PROJECT_DIR (workspace — set by start.mjs / adapter, like CLAUDE_PROJECT_DIR).
   ["grok", [
+    { name: "GROK_PROJECT_DIR",  role: "workspace" },
     { name: "GROK_PLUGIN_ROOT",  role: "identification" },
     { name: "GROK_PLUGIN_DATA",  role: "identification" },
-    { name: "GROK_HOME",         role: "workspace" },
+    { name: "GROK_HOME",         role: "identification" },
     { name: "GROK_AGENT_ID",     role: "identification" },
   ]],
   ["claude-code", [

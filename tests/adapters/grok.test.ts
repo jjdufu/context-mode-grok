@@ -4,9 +4,11 @@ import {
   detectPlatform,
   getSessionDirSegments,
   PLATFORM_ENV_VARS,
+  workspaceEnvVarsFor,
   getAdapter,
   __resetClaudeCodePluginCacheForTests,
 } from "../../src/adapters/detect.js";
+import { isPluginInstallPath, resolveProjectDir } from "../../src/util/project-dir.js";
 
 describe("Grok Build adapter wiring", () => {
   const saved: Record<string, string | undefined> = {};
@@ -92,4 +94,27 @@ describe("Grok Build adapter wiring", () => {
     expect(event.sessionId).toBe("sess-1");
     expect(event.projectDir).toBe("/tmp/proj");
   });
+
+  it("registers GROK_PROJECT_DIR as workspace and GROK_HOME as identification only", () => {
+    expect(workspaceEnvVarsFor("grok")).toEqual(["GROK_PROJECT_DIR"]);
+    const entries = PLATFORM_ENV_VARS.get("grok") ?? [];
+    const byName = Object.fromEntries(entries.map((e) => [e.name, e.role]));
+    expect(byName.GROK_HOME).toBe("identification");
+    expect(byName.GROK_PROJECT_DIR).toBe("workspace");
+  });
+
+  it("strictPlatform=grok + GROK_HOME does not use ~/.grok as project when PWD is real", () => {
+    const result = resolveProjectDir({
+      env: { GROK_HOME: "/home/u/.grok" },
+      cwd: "/home/u/.grok",
+      pwd: "/home/u/projects/app",
+      strictPlatform: "grok",
+    });
+    expect(result).toBe("/home/u/projects/app");
+  });
+
+  it("isPluginInstallPath is true for grok installed-plugins path", () => {
+    expect(isPluginInstallPath("/home/u/.grok/installed-plugins/context-mode-deadbeef")).toBe(true);
+  });
+
 });

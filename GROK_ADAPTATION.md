@@ -48,6 +48,16 @@ Copy `configs/grok/AGENTS.md` into the project (or `~/.grok/`) so the model sees
 4. **Two-step tool calling** — model must `search_tool` then `use_tool("context-mode__ctx_…")`; compliance is not 100% without deny hooks.
 5. **Plugin MCP** uses `${GROK_PLUGIN_ROOT}/start.mjs`. Prefer `grok mcp add … -- context-mode` after `npm link` for a faster, PATH-stable binary.
 
+
+## Project dir: GROK_HOME vs GROK_PROJECT_DIR (1.0.169-grok.2)
+
+`GROK_HOME` is Grok's **config root** (`~/.grok`), not the working project. Treating it as a workspace env caused `resolveProjectDir({ strictPlatform: "grok" })` to root sessions under `~/.grok` whenever `GROK_HOME` was set.
+
+Fix:
+- `PLATFORM_ENV_VARS` grok: `GROK_HOME` → identification; `GROK_PROJECT_DIR` → workspace
+- `start.mjs` sets `GROK_PROJECT_DIR` from the safe original cwd (same as `CLAUDE_PROJECT_DIR`)
+- `isPluginInstallPath` also matches `.grok/(installed-plugins|plugins)/` so plugin install trees do not poison the project dir
+
 ## Verify
 
 ```bash

@@ -74,6 +74,15 @@ describe("isPluginInstallPath", () => {
     expect(isPluginInstallPath("/Users/x/.codex/plugins/marketplaces/context-mode")).toBe(true);
   });
 
+  it("matches Grok installed-plugins and plugins paths", () => {
+    expect(isPluginInstallPath("/Users/x/.grok/installed-plugins/context-mode-abc123")).toBe(true);
+    expect(isPluginInstallPath("/home/x/.grok/plugins/context-mode")).toBe(true);
+    expect(isPluginInstallPath("C:\\Users\\x\\.grok\\installed-plugins\\context-mode")).toBe(true);
+    // Config / session trees under .grok must NOT match
+    expect(isPluginInstallPath("/Users/x/.grok/context-mode/sessions/abc.db")).toBe(false);
+    expect(isPluginInstallPath("/Users/x/.grok/hooks/context-mode.json")).toBe(false);
+  });
+
   it("matches Windows plugin cache paths (backslash + drive letter)", () => {
     expect(isPluginInstallPath("C:\\Users\\x\\.claude\\plugins\\cache\\foo\\foo\\1.0.0")).toBe(true);
     expect(isPluginInstallPath("C:\\Users\\x\\.codex\\plugins\\cache\\foo\\foo\\1.0.0")).toBe(true);
@@ -259,6 +268,35 @@ describe("resolveProjectDir — strictPlatform algorithmic mode (issue #545)", (
       strictPlatform: "zed",
     });
     expect(result).toBe("/Users/x/escape");
+  });
+
+  // GROK_HOME is the config root (~/.grok), not the project workspace.
+  // Under strictPlatform=grok it must NOT win over a real project PWD/cwd.
+  it("strictPlatform=grok does NOT treat GROK_HOME as project dir when PWD is a real project", () => {
+    const result = resolveProjectDir({
+      env: {
+        GROK_HOME: "/Users/x/.grok",
+        // No GROK_PROJECT_DIR — fall through past identification-only GROK_HOME
+      },
+      cwd: "/Users/x/.grok", // often the MCP child cwd under plugin install
+      pwd: "/Users/x/Work/my-app",
+      strictPlatform: "grok",
+    });
+    expect(result).toBe("/Users/x/Work/my-app");
+  });
+
+  it("strictPlatform=grok prefers GROK_PROJECT_DIR over GROK_HOME and leaked CLAUDE_PROJECT_DIR", () => {
+    const result = resolveProjectDir({
+      env: {
+        GROK_HOME: "/Users/x/.grok",
+        CLAUDE_PROJECT_DIR: "/leak/from/claude-compat",
+        GROK_PROJECT_DIR: "/Users/x/Work/real-project",
+      },
+      cwd: "/Users/x/.grok/installed-plugins/context-mode-xyz",
+      pwd: undefined,
+      strictPlatform: "grok",
+    });
+    expect(result).toBe("/Users/x/Work/real-project");
   });
 
   it("non-strict mode preserves the EXACT legacy candidate order (semver lock)", () => {

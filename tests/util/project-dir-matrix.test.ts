@@ -48,6 +48,7 @@ const ALL_PLATFORMS: ReadonlyArray<PlatformId> = [
   "omp",
   "copilot-cli",
   "antigravity-cli",
+  "grok",
 ];
 
 describe("resolveProjectDir matrix — MUST-3 invariant (issue #545)", () => {

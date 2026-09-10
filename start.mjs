@@ -36,11 +36,19 @@ function resolveClaudeConfigDir() {
 // the env auto-set in that case; getProjectDir() defends a second time inside
 // server.ts via resolveProjectDir(). See src/util/project-dir.ts.
 const isPluginInstallPath = (p) =>
-  /[/\\]\.(claude|codex)[/\\]plugins[/\\](cache|marketplaces)[/\\]/.test(p);
+  /[/\\]\.(claude|codex)[/\\]plugins[/\\](cache|marketplaces)[/\\]/.test(p) ||
+  /[/\\]\.grok[/\\](installed-plugins|plugins)[/\\]/.test(p);
 const safeOriginalCwd = isPluginInstallPath(originalCwd) ? null : originalCwd;
 
 if (!process.env.CLAUDE_PROJECT_DIR && safeOriginalCwd) {
   process.env.CLAUDE_PROJECT_DIR = safeOriginalCwd;
+}
+
+// Grok workspace var — GROK_HOME is the config root (~/.grok), NOT the project.
+// Prefer GROK_PROJECT_DIR (like CLAUDE_PROJECT_DIR) so strictPlatform=grok
+// resolveProjectDir does not treat ~/.grok as the project root.
+if (!process.env.GROK_PROJECT_DIR && safeOriginalCwd) {
+  process.env.GROK_PROJECT_DIR = safeOriginalCwd;
 }
 
 // Platform-agnostic project dir — guaranteed to be set for ALL platforms.
