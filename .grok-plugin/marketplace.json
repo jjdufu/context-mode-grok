@@ -14,7 +14,7 @@
       "source": {
         "source": "url",
         "url": "https://github.com/jjdufu/context-mode-grok.git",
-        "sha": "7cca3d20b62944a9acfd4f555064fa9738b1f8a3"
+        "sha": "83b68cff219b05a8905e564993dc4cb20699d0ee"
       },
       "homepage": "https://github.com/jjdufu/context-mode-grok",
       "keywords": [
