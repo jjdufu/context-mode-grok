@@ -30,6 +30,8 @@ Wire name shape is `context-mode__<tool>` (not Claude's `mcp__plugin_context-mod
 
 Prefer denying large `run_terminal_command` / `read_file` / `web_fetch` / `open_page` in favor of the `ctx_*` tools above. SessionStart stdout is discarded on Grok — this skill and `configs/grok/AGENTS.md` are the routing source of truth.
 
+After a Hook **denied** `read_file`: MUST immediately `search_tool` + `use_tool("context-mode__ctx_execute_file", …)` using the filled example in the deny reason. Never paginate `read_file` (offset/limit) on the same large path — the gate denies every attempt.
+
 ---
 
 ## MANDATORY RULE

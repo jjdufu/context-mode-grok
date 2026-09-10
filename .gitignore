@@ -17,6 +17,7 @@ gh-cli-cache/
 tasks/
 .playwright-mcp/
 AGENTS.md
+!configs/grok/AGENTS.md
 context-mode-guidance-*/
 .claude/worktrees/
 

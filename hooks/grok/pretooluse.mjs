@@ -7,6 +7,9 @@ import "../suppress-stderr.mjs";
  * Prefers deny-with-reason over additionalContext: Grok delivers PreToolUse
  * additionalContext AFTER the tool has already run, so soft guidance cannot
  * prevent the first large Read/Bash from entering context.
+ *
+ * After routePreToolUse, applies grokLargeReadGate so mid-size files and
+ * offset/limit pagination cannot bypass the one-shot guidance→deny path.
  */
 
 import { dirname, resolve } from "node:path";
@@ -21,6 +24,7 @@ import {
 } from "../session-helpers.mjs";
 import { routePreToolUse, initSecurity } from "../core/routing.mjs";
 import { formatDecision } from "../core/formatters.mjs";
+import { grokLargeReadGate } from "./large-read-gate.mjs";
 
 const __hookDir = dirname(fileURLToPath(import.meta.url));
 await initSecurity(resolve(__hookDir, "..", "..", "build"));
@@ -50,6 +54,14 @@ if (decision && decision.action === "context" && decision.additionalContext) {
       decision.additionalContext +
       "\n\nGrok tip: discover tools with search_tool(\"ctx_execute\"), then call use_tool(\"context-mode__ctx_execute\", …).",
   };
+}
+
+// Always-on large / paginated read gate (every call, not guidanceOnce).
+// Runs after soft→deny so mid-size files cannot fall through to allow on
+// the second+ read_file or via offset/limit chunking.
+const largeRead = grokLargeReadGate(tool, toolInput, projectDir);
+if (largeRead) {
+  effective = largeRead;
 }
 
 const response = formatDecision("grok", effective);

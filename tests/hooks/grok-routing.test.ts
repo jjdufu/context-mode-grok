@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeAll, beforeEach, afterEach, afterAll } from "vitest";
 import { writeFileSync, unlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
@@ -97,5 +97,71 @@ describe("Grok Build routing", () => {
     expect(n.tool_name).toBe("read_file");
     expect((n.tool_input as { file_path: string }).file_path).toBe("/a/b");
     expect(n.session_id).toBe("s1");
+  });
+});
+
+describe("Grok large-read always-deny gate", () => {
+  let grokLargeReadGate: (
+    toolName: string,
+    toolInput: Record<string, unknown>,
+    projectDir?: string,
+  ) => { action: string; reason?: string } | null;
+  let GROK_READ_HARD_DENY_BYTES: number;
+  let GROK_READ_PAGINATION_DENY_BYTES: number;
+  let bigFile: string;
+  let midFile: string;
+  let smallFile: string;
+
+  beforeAll(async () => {
+    const gate = await import("../../hooks/grok/large-read-gate.mjs");
+    grokLargeReadGate = gate.grokLargeReadGate;
+    GROK_READ_HARD_DENY_BYTES = gate.GROK_READ_HARD_DENY_BYTES;
+    GROK_READ_PAGINATION_DENY_BYTES = gate.GROK_READ_PAGINATION_DENY_BYTES;
+
+    bigFile = resolve(_sentinelDir, `cm-grok-big-${process.pid}.md`);
+    midFile = resolve(_sentinelDir, `cm-grok-mid-${process.pid}.md`);
+    smallFile = resolve(_sentinelDir, `cm-grok-small-${process.pid}.md`);
+    writeFileSync(bigFile, "x".repeat(GROK_READ_HARD_DENY_BYTES + 1));
+    writeFileSync(midFile, "y".repeat(GROK_READ_PAGINATION_DENY_BYTES + 1));
+    writeFileSync(smallFile, "z".repeat(100));
+  });
+
+  afterAll(() => {
+    for (const f of [bigFile, midFile, smallFile]) {
+      try { unlinkSync(f); } catch { /* ignore */ }
+    }
+  });
+
+  it("denies read_file of >8KB file on every call (not once)", () => {
+    const first = grokLargeReadGate("read_file", { target_file: bigFile }, _sentinelDir);
+    const second = grokLargeReadGate("read_file", { target_file: bigFile }, _sentinelDir);
+    expect(first?.action).toBe("deny");
+    expect(second?.action).toBe("deny");
+    expect(first!.reason).toMatch(/use_tool\("context-mode__ctx_execute_file"/);
+    expect(first!.reason).toContain(bigFile);
+    expect(second!.reason).toMatch(/use_tool\("context-mode__ctx_execute_file"/);
+  });
+
+  it("denies paginated read_file (offset/limit) when size >4KB", () => {
+    const decision = grokLargeReadGate(
+      "read_file",
+      { target_file: midFile, offset: 0, limit: 100 },
+      _sentinelDir,
+    );
+    expect(decision?.action).toBe("deny");
+    expect(decision!.reason).toMatch(/Paginated read_file|offset\/limit/);
+    expect(decision!.reason).toMatch(/use_tool\("context-mode__ctx_execute_file"/);
+  });
+
+  it("allows small files without pagination", () => {
+    expect(grokLargeReadGate("read_file", { target_file: smallFile }, _sentinelDir)).toBeNull();
+  });
+
+  it("allows mid-size files without pagination when <=8KB", () => {
+    // midFile is >4KB but <=8KB if PAGINATION < HARD; deny only when paginated
+    const sizeOk =
+      GROK_READ_PAGINATION_DENY_BYTES < GROK_READ_HARD_DENY_BYTES;
+    expect(sizeOk).toBe(true);
+    expect(grokLargeReadGate("read_file", { target_file: midFile }, _sentinelDir)).toBeNull();
   });
 });

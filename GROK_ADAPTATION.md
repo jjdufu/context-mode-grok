@@ -102,3 +102,14 @@ grok plugin enable context-mode
 ```
 
 After rename from `jjdufu/context-mode`, use the new GitHub name above. MCP start auto-installs `~/.grok/hooks/context-mode.json`.
+
+## Large read_file pagination bypass fix (1.0.169-grok.3)
+
+Grok converts soft Read guidance to deny, but `guidanceOnce` only fires once. After the first deny, later `read_file` calls were ALLOW — and models bypassed mid-size files (~31KB, under the shared 50KB hard path) via `offset`/`limit` pagination (`ctx_stats` stayed at 0 processing calls).
+
+Fix (`hooks/grok/large-read-gate.mjs`, applied in `hooks/grok/pretooluse.mjs` after `routePreToolUse`):
+- Always deny (every call) when file size > **8192** bytes
+- Always deny when `offset`/`limit` present and size > **4096** bytes
+- Deny reason includes an explicit **filled** `use_tool("context-mode__ctx_execute_file", { path, language, code })` example
+
+Claude soft-nudge (`guidanceOnce` / 50KB) semantics are unchanged.
