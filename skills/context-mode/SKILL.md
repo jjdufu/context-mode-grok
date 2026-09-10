@@ -28,9 +28,11 @@ On **Grok Build**, context-mode tools are MCP tools. They are **not** native too
 
 Wire name shape is `context-mode__<tool>` (not Claude's `mcp__plugin_context-mode_context-mode__<tool>`).
 
-Prefer denying large `run_terminal_command` / `read_file` / `web_fetch` / `open_page` in favor of the `ctx_*` tools above. SessionStart stdout is discarded on Grok — this skill and `configs/grok/AGENTS.md` are the routing source of truth.
+Prefer denying large noisy `run_terminal_command` / `read_file` / `web_fetch` / `open_page` in favor of the `ctx_*` tools above. SessionStart stdout is discarded on Grok — this skill and `configs/grok/AGENTS.md` are the routing source of truth.
 
-After a Hook **denied** `read_file`: MUST immediately `search_tool` + `use_tool("context-mode__ctx_execute_file", …)` using the filled example in the deny reason. Never paginate `read_file` (offset/limit) on the same large path — the gate denies every attempt.
+**Grok read_file policy:** native `read_file` is OK for prose/source (`.md`, typical source) when you need full text (style review, editing). Use `ctx_execute_file` for aggregation/search on large logs/data. Never `console.log` the full `FILE_CONTENT` if the goal is saving tokens.
+
+After a Hook **denied** `read_file` (noisy/large data paths only): MUST immediately `search_tool` + `use_tool("context-mode__ctx_execute_file", …)` using the filled example in the deny reason. Do not retry native read on that path.
 
 ---
 

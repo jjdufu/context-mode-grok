@@ -100,68 +100,101 @@ describe("Grok Build routing", () => {
   });
 });
 
-describe("Grok large-read always-deny gate", () => {
+describe("Grok large-read noisy-path gate", () => {
   let grokLargeReadGate: (
     toolName: string,
     toolInput: Record<string, unknown>,
     projectDir?: string,
+    sessionId?: string,
   ) => { action: string; reason?: string } | null;
+  let isGrokHardGatePath: (absPath: string) => boolean;
   let GROK_READ_HARD_DENY_BYTES: number;
   let GROK_READ_PAGINATION_DENY_BYTES: number;
-  let bigFile: string;
-  let midFile: string;
-  let smallFile: string;
+  let bigMd: string;
+  let bigLog: string;
+  let midLog: string;
+  let smallLog: string;
+  let nmFile: string;
 
   beforeAll(async () => {
     const gate = await import("../../hooks/grok/large-read-gate.mjs");
     grokLargeReadGate = gate.grokLargeReadGate;
+    isGrokHardGatePath = gate.isGrokHardGatePath;
     GROK_READ_HARD_DENY_BYTES = gate.GROK_READ_HARD_DENY_BYTES;
     GROK_READ_PAGINATION_DENY_BYTES = gate.GROK_READ_PAGINATION_DENY_BYTES;
 
-    bigFile = resolve(_sentinelDir, `cm-grok-big-${process.pid}.md`);
-    midFile = resolve(_sentinelDir, `cm-grok-mid-${process.pid}.md`);
-    smallFile = resolve(_sentinelDir, `cm-grok-small-${process.pid}.md`);
-    writeFileSync(bigFile, "x".repeat(GROK_READ_HARD_DENY_BYTES + 1));
-    writeFileSync(midFile, "y".repeat(GROK_READ_PAGINATION_DENY_BYTES + 1));
-    writeFileSync(smallFile, "z".repeat(100));
+    bigMd = resolve(_sentinelDir, `cm-grok-big-${process.pid}.md`);
+    bigLog = resolve(_sentinelDir, `cm-grok-big-${process.pid}.log`);
+    midLog = resolve(_sentinelDir, `cm-grok-mid-${process.pid}.log`);
+    smallLog = resolve(_sentinelDir, `cm-grok-small-${process.pid}.log`);
+    writeFileSync(bigMd, "x".repeat(GROK_READ_HARD_DENY_BYTES + 1));
+    writeFileSync(bigLog, "x".repeat(GROK_READ_HARD_DENY_BYTES + 1));
+    writeFileSync(midLog, "y".repeat(GROK_READ_PAGINATION_DENY_BYTES + 1));
+    writeFileSync(smallLog, "z".repeat(100));
+    const nmDir = resolve(_sentinelDir, "node_modules", "pkg");
+    const { mkdirSync } = await import("node:fs");
+    mkdirSync(nmDir, { recursive: true });
+    nmFile = resolve(nmDir, "index.js");
+    writeFileSync(nmFile, "n".repeat(GROK_READ_HARD_DENY_BYTES + 1));
   });
 
   afterAll(() => {
-    for (const f of [bigFile, midFile, smallFile]) {
+    for (const f of [bigMd, bigLog, midLog, smallLog, nmFile]) {
       try { unlinkSync(f); } catch { /* ignore */ }
     }
   });
 
-  it("denies read_file of >8KB file on every call (not once)", () => {
-    const first = grokLargeReadGate("read_file", { target_file: bigFile }, _sentinelDir);
-    const second = grokLargeReadGate("read_file", { target_file: bigFile }, _sentinelDir);
+  it("classifies .md as passthrough and .log / node_modules as hard-gate", () => {
+    expect(isGrokHardGatePath(bigMd)).toBe(false);
+    expect(isGrokHardGatePath(bigLog)).toBe(true);
+    expect(isGrokHardGatePath(nmFile)).toBe(true);
+  });
+
+  it("allows large .md read_file (human docs / source)", () => {
+    expect(grokLargeReadGate("read_file", { target_file: bigMd }, _sentinelDir)).toBeNull();
+    expect(
+      grokLargeReadGate("read_file", { target_file: bigMd, offset: 0, limit: 50 }, _sentinelDir),
+    ).toBeNull();
+  });
+
+  it("denies large .log every call; first long, later short", () => {
+    const sid = `gate-log-${process.pid}-${Date.now()}`;
+    const first = grokLargeReadGate("read_file", { target_file: bigLog }, _sentinelDir, sid);
+    const second = grokLargeReadGate("read_file", { target_file: bigLog }, _sentinelDir, sid);
     expect(first?.action).toBe("deny");
     expect(second?.action).toBe("deny");
     expect(first!.reason).toMatch(/use_tool\("context-mode__ctx_execute_file"/);
-    expect(first!.reason).toContain(bigFile);
-    expect(second!.reason).toMatch(/use_tool\("context-mode__ctx_execute_file"/);
+    expect(first!.reason).toContain(bigLog);
+    expect(second!.reason).toMatch(/^use context-mode__ctx_execute_file on /);
+    expect(second!.reason!.length).toBeLessThan(first!.reason!.length);
   });
 
-  it("denies paginated read_file (offset/limit) when size >4KB", () => {
+  it("denies paginated noisy mid-size .log when size >4KB", () => {
+    const sid = `gate-page-${process.pid}-${Date.now()}`;
     const decision = grokLargeReadGate(
       "read_file",
-      { target_file: midFile, offset: 0, limit: 100 },
+      { target_file: midLog, offset: 0, limit: 100 },
       _sentinelDir,
+      sid,
     );
     expect(decision?.action).toBe("deny");
-    expect(decision!.reason).toMatch(/Paginated read_file|offset\/limit/);
-    expect(decision!.reason).toMatch(/use_tool\("context-mode__ctx_execute_file"/);
+    expect(decision!.reason).toMatch(/Paginated|noisy|ctx_execute_file/);
   });
 
-  it("allows small files without pagination", () => {
-    expect(grokLargeReadGate("read_file", { target_file: smallFile }, _sentinelDir)).toBeNull();
+  it("allows small noisy files without pagination", () => {
+    expect(grokLargeReadGate("read_file", { target_file: smallLog }, _sentinelDir)).toBeNull();
   });
 
-  it("allows mid-size files without pagination when <=8KB", () => {
-    // midFile is >4KB but <=8KB if PAGINATION < HARD; deny only when paginated
+  it("allows mid-size noisy files without pagination when <=8KB", () => {
     const sizeOk =
       GROK_READ_PAGINATION_DENY_BYTES < GROK_READ_HARD_DENY_BYTES;
     expect(sizeOk).toBe(true);
-    expect(grokLargeReadGate("read_file", { target_file: midFile }, _sentinelDir)).toBeNull();
+    expect(grokLargeReadGate("read_file", { target_file: midLog }, _sentinelDir)).toBeNull();
+  });
+
+  it("denies large file under node_modules even if .js", () => {
+    const sid = `gate-nm-${process.pid}-${Date.now()}`;
+    const decision = grokLargeReadGate("read_file", { target_file: nmFile }, _sentinelDir, sid);
+    expect(decision?.action).toBe("deny");
   });
 });

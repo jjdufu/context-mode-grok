@@ -8,8 +8,9 @@ import "../suppress-stderr.mjs";
  * additionalContext AFTER the tool has already run, so soft guidance cannot
  * prevent the first large Read/Bash from entering context.
  *
- * After routePreToolUse, applies grokLargeReadGate so mid-size files and
- * offset/limit pagination cannot bypass the one-shot guidance→deny path.
+ * After routePreToolUse, applies grokLargeReadGate for noisy/compressible
+ * paths only (logs, locks, node_modules, large data). Prose/source (.md, .ts, …)
+ * pass through to native read_file even when large.
  */
 
 import { dirname, resolve } from "node:path";
@@ -24,7 +25,12 @@ import {
 } from "../session-helpers.mjs";
 import { routePreToolUse, initSecurity } from "../core/routing.mjs";
 import { formatDecision } from "../core/formatters.mjs";
-import { grokLargeReadGate } from "./large-read-gate.mjs";
+import {
+  grokLargeReadGate,
+  getGrokReadPath,
+  resolveGrokReadPath,
+  isGrokHardGatePath,
+} from "./large-read-gate.mjs";
 
 const __hookDir = dirname(fileURLToPath(import.meta.url));
 await initSecurity(resolve(__hookDir, "..", "..", "build"));
@@ -36,30 +42,39 @@ const toolInput = input.tool_input ?? {};
 const projectDir = getInputProjectDir(input, GROK_OPTS);
 const isSubagentContext = input.agent_id != null || input.agent_type != null || input.agentId != null;
 
+const sessionId = getSessionId(input, GROK_OPTS);
 const decision = routePreToolUse(
   tool,
   toolInput,
   projectDir,
   "grok",
-  getSessionId(input, GROK_OPTS),
+  sessionId,
   { mcpToolsAvailable: !isSubagentContext },
 );
 
 // Prefer deny over soft context on Grok — additionalContext is post-hoc only.
+// Exception: prose/source reads (isGrokHardGatePath=false) — allow native
+// read_file; denying forced ctx_execute_file dumps that erase token savings.
 let effective = decision;
 if (decision && decision.action === "context" && decision.additionalContext) {
-  effective = {
-    action: "deny",
-    reason:
-      decision.additionalContext +
-      "\n\nGrok tip: discover tools with search_tool(\"ctx_execute\"), then call use_tool(\"context-mode__ctx_execute\", …).",
-  };
+  const rawRead = getGrokReadPath(toolInput);
+  const absRead = rawRead ? resolveGrokReadPath(rawRead, projectDir) : "";
+  const proseOrSourceRead = Boolean(rawRead) && !isGrokHardGatePath(absRead);
+  if (proseOrSourceRead) {
+    effective = null;
+  } else {
+    effective = {
+      action: "deny",
+      reason:
+        decision.additionalContext +
+        "\n\nGrok tip: discover tools with search_tool(\"ctx_execute\"), then call use_tool(\"context-mode__ctx_execute\", …).",
+    };
+  }
 }
 
-// Always-on large / paginated read gate (every call, not guidanceOnce).
-// Runs after soft→deny so mid-size files cannot fall through to allow on
-// the second+ read_file or via offset/limit chunking.
-const largeRead = grokLargeReadGate(tool, toolInput, projectDir);
+// Noisy-path large / paginated read gate (every call, not guidanceOnce).
+// Prose/source allowlisted; only logs/locks/node_modules/data hard-deny.
+const largeRead = grokLargeReadGate(tool, toolInput, projectDir, sessionId);
 if (largeRead) {
   effective = largeRead;
 }

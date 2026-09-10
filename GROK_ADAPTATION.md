@@ -113,3 +113,13 @@ Fix (`hooks/grok/large-read-gate.mjs`, applied in `hooks/grok/pretooluse.mjs` af
 - Deny reason includes an explicit **filled** `use_tool("context-mode__ctx_execute_file", { path, language, code })` example
 
 Claude soft-nudge (`guidanceOnce` / 50KB) semantics are unchanged.
+
+## Large-read gate: noisy-path only (1.0.171)
+
+Session analysis (方案.md language review): blanket >8KB deny of human docs forced `ctx_execute_file` → model dumped full `FILE_CONTENT` via `console.log` → **0 tokens saved**, plus deny/search_tool/MCP tax made context worse than native `read_file`.
+
+Policy (`hooks/grok/large-read-gate.mjs`):
+- **Hard-deny only** noisy/compressible paths: `.log`, `.jsonl`, locks, `node_modules`/`dist`/`build`/`fixtures`, minified, large data (`.json`/CSV/…) over size thresholds (8KB hard / 4KB paginated).
+- **Allow** native `read_file` (and offset/limit) for prose/source (`.md`, `.mdx`, `.txt`, `.ts`/`.js`/`.py`/…) even when >8KB.
+- First deny for a path: short filled `use_tool` example; subsequent denies in-session: one line (`use context-mode__ctx_execute_file on <path>`), via `/tmp/context-mode-grok-deny/<session>/`.
+- Starter code is summary-only — never print full `FILE_CONTENT`.

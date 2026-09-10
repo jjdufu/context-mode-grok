@@ -29,10 +29,11 @@ Use: `context-mode__ctx_fetch_and_index` then `context-mode__ctx_search`.
 Whitelist only: `git` writes, `mkdir`, `rm`, `mv`, `cd`, `ls`, `npm install`, `pip install`, `echo`.
 Otherwise: `context-mode__ctx_batch_execute` or `context-mode__ctx_execute`.
 
-### read_file (for analysis)
-Reading to **edit** → `read_file` is fine. Reading to **analyze/explore/summarize** → `context-mode__ctx_execute_file`.
+### read_file — when native is OK vs sandbox
+- **Prose / source review or editing** (`.md`, `.mdx`, `.txt`, `.ts`/`.tsx`/`.js`/`.py`/…): native `read_file` is OK — including full text for language/style review. Do **not** dump `FILE_CONTENT` via `console.log` if the goal is saving tokens.
+- **Large logs / data / noisy paths** (`.log`, `.jsonl`, locks, `node_modules`, minified, fixtures, big `.json`/CSV): use `context-mode__ctx_execute_file` for aggregation/search. Hard gate denies native read on these when large.
 
-**After Hook denied for `read_file`:** immediately `search_tool("ctx_execute_file")` then `use_tool("context-mode__ctx_execute_file", { path, language, code })`. Do **NOT** paginate the same path with `read_file` `offset`/`limit` — that is blocked and wastes turns. Use the filled `use_tool` example from the deny reason.
+**After Hook denied for `read_file`:** immediately `search_tool("ctx_execute_file")` then `use_tool("context-mode__ctx_execute_file", { path, language, code })`. Do **NOT** retry `read_file` on the same noisy path. Use the filled `use_tool` example from the first deny (later denies are one short line). `console.log` **summary only** — never the full file.
 
 ### grep (large results)
 Prefer `context-mode__ctx_execute` in the sandbox for filtering/counting.
